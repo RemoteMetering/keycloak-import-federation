@@ -59,6 +59,7 @@ public class RestUserFederationProviderFactoryTest {
         MultivaluedHashMap<String, String> config = new MultivaluedHashMap<String, String>();
         config.putSingle(RestUserFederationProviderFactory.PROPERTY_URL, "https://www.example.org");
         config.putSingle(RestUserFederationProviderFactory.PROPERTY_CLIENTID, "134");
+        config.putSingle(RestUserFederationProviderFactory.ROLE_CLIENTID, "testClient");
         when(userFederationProviderModel.getConfig())
                 .thenReturn(config);
     }

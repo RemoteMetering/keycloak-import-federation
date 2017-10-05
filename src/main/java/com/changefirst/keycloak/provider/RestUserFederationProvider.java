@@ -53,12 +53,13 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
     protected Boolean upperCaseRoleName;
     protected Boolean lowerCaseRoleName;
     protected String rolePrefix;
+    protected String roleClientId;
 
     public RestUserFederationProvider(KeycloakSession session, ComponentModel model, UserRepository repository) {
-        this(session, model,repository, new ArrayList<String>(), null, false, false, false, false);
+        this(session, model,repository, new ArrayList<String>(), null, false, false, false, false, "");
     }
 
-    public RestUserFederationProvider(KeycloakSession session, ComponentModel model, UserRepository repository, List<String> attributes, String rolePrefix, Boolean autoEnable, Boolean autoConvertLocale, Boolean upperCaseRoleName, Boolean lowerCaseRoleName) {
+    public RestUserFederationProvider(KeycloakSession session, ComponentModel model, UserRepository repository, List<String> attributes, String rolePrefix, Boolean autoEnable, Boolean autoConvertLocale, Boolean upperCaseRoleName, Boolean lowerCaseRoleName, String roleClientId) {
         this.session = session;
         this.model = model;
         this.repository = repository;
@@ -68,6 +69,7 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
         this.autoConvertLocale = autoConvertLocale;
         this.upperCaseRoleName = upperCaseRoleName;
         this.lowerCaseRoleName = lowerCaseRoleName;
+        this.roleClientId = roleClientId;
     }
 
     protected UserModel createAdapter(RealmModel realm, String username) {
@@ -118,19 +120,18 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
                 }
 
 
-
+                ClientModel clientModel = realm.getClientByClientId(this.roleClientId);
 
                 //pass roles along
                 if (remote.getRoles() != null) {
                     for (String role : remote.getRoles()) {
-                        RoleModel roleModel = realm.getRole(convertRemoteRoleName(role));
+                        RoleModel roleModel = clientModel.getRole(convertRemoteRoleName(role));
                         if (roleModel != null) {
                             local.grantRole(roleModel);
                             LOG.infof("Remote role %s granted to %s", role, username);
                         }
                     }
                 }
-
             }
         }
         if ( local != null ) {

@@ -41,6 +41,7 @@ public class RestUserFederationProviderFactory implements UserStorageProviderFac
     public static final String PROPERTY_ATTRIBS = "attributes";
     public static final String ROLE_PREFIX = "role-prefix";
     public static final String PROPERTY_CLIENTID = "clientId";
+    public static final String ROLE_CLIENTID = "roleClientId";
     public static final String AUTO_ENABLE_ACCOUNT = "auto-enable";
     public static final String AUTO_CONVERT_LOCALE = "auto-locale";
     public static final String UPPERCASE_ROLE = "uppercase-role";
@@ -63,6 +64,12 @@ public class RestUserFederationProviderFactory implements UserStorageProviderFac
                 .label("Remote Client identifier")
                 .defaultValue("")
                 .helpText("This value will be sent to the remote service along with the username")
+                .add()
+                .property().name(ROLE_CLIENTID)
+                .type(ProviderConfigProperty.STRING_TYPE)
+                .label("Role Client ID")
+                .defaultValue("")
+                .helpText("This will add the roles to the provided client")
                 .add()
                 .property().name(PROPERTY_ATTRIBS)
                 .type(ProviderConfigProperty.MULTIVALUED_STRING_TYPE)
@@ -112,6 +119,7 @@ public class RestUserFederationProviderFactory implements UserStorageProviderFac
     public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel config) throws ComponentValidationException {
        String url = config.getConfig().getFirst(PROPERTY_URL);
        String clientId = config.getConfig().getFirst(PROPERTY_CLIENTID);
+       String roleClientId = config.getConfig().getFirst(ROLE_CLIENTID);
 
        boolean valid = false;
 
@@ -121,6 +129,12 @@ public class RestUserFederationProviderFactory implements UserStorageProviderFac
 
 
        if ( valid && clientId != null && clientId.length() > 0 ) {
+           valid = true;
+       } else {
+           valid = false;
+       }
+
+       if(valid && roleClientId != null && roleClientId.length() > 0 ){
            valid = true;
        } else {
            valid = false;
@@ -147,6 +161,7 @@ public class RestUserFederationProviderFactory implements UserStorageProviderFac
     public RestUserFederationProvider create(KeycloakSession session, ComponentModel model) {
         String url = model.getConfig().getFirst(PROPERTY_URL);
         String clientId = model.getConfig().getFirst(PROPERTY_CLIENTID);
+        String roleClientId = model.getConfig().getFirst(ROLE_CLIENTID);
         Boolean autoEnable = Boolean.valueOf(model.getConfig().getFirst(AUTO_ENABLE_ACCOUNT));
         Boolean autoConvertLocale = Boolean.valueOf(model.getConfig().getFirst(AUTO_CONVERT_LOCALE));
         Boolean upperCase = Boolean.valueOf(model.getConfig().getFirst(UPPERCASE_ROLE));
@@ -154,7 +169,6 @@ public class RestUserFederationProviderFactory implements UserStorageProviderFac
         List<String> attribList = model.getConfig().getList(PROPERTY_ATTRIBS);
         String rolePrefix = model.getConfig().getFirst(ROLE_PREFIX);
         UserRepository repository = new UserRepository(url, clientId);
-        return new RestUserFederationProvider(session, model, repository, attribList, rolePrefix, autoEnable,autoConvertLocale, upperCase, lowerCase);
+        return new RestUserFederationProvider(session, model, repository, attribList, rolePrefix, autoEnable,autoConvertLocale, upperCase, lowerCase, roleClientId);
     }
-
 }
