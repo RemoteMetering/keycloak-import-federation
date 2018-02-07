@@ -1,0 +1,7 @@
+docker pull gradle
+
+#windows
+ docker run --rm -v /c/projects/keycloak-import-federation:/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build
+
+ #linux - run int the project dire
+docker run --rm -v "$PWD":/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build
