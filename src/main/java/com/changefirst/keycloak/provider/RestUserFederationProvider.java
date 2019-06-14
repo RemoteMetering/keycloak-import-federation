@@ -91,8 +91,10 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
                 //merge data from remote to local
                 local.setFirstName(remote.getFirstName());
                 local.setLastName(remote.getLastName());
-                local.setEmail(remote.getEmail());
-                local.setEmailVerified(remote.isEnabled());
+				if(!username.contains("@")){
+                	local.setEmail(remote.getEmail());
+                	local.setEmailVerified(remote.isEnabled());
+				}
 
                 //auto enable account
                 if ( this.autoEnable != null && this.autoEnable) {
