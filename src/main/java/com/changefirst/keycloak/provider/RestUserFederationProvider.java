@@ -74,6 +74,7 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
 
     protected UserModel createAdapter(RealmModel realm, String username) {
         UserModel local = session.userLocalStorage().getUserByUsername(username, realm);
+
         if (local == null) {
             //fetch user remotely
             LOG.debugf("User %s does not exists locally, fetching it from remote.", username);
@@ -96,7 +97,8 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
                 //merge data from remote to local
                 local.setFirstName(remote.getFirstName());
                 local.setLastName(remote.getLastName());
-				if(!username.contains("@")){
+                
+				if(remote.getEmail() != null && remote.getEmail().contains("@")){
                 	local.setEmail(remote.getEmail());
                 	local.setEmailVerified(remote.isEnabled());
 				}

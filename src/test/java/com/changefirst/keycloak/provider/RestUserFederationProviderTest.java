@@ -15,6 +15,8 @@
  */
 package com.changefirst.keycloak.provider;
 
+import com.changefirst.model.UserDto;
+
 import com.changefirst.api.user.UserRepository;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,8 +27,10 @@ import org.keycloak.credential.CredentialModel;
 import org.keycloak.models.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
+import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -62,36 +66,99 @@ public class RestUserFederationProviderTest {
     @Mock
     private UserRepository repository;
 
+    @Mock
+    private UserProvider userProvider;
+
+    // @Mock
+    // private UserFederationManager userFederationManager;
+
+    private UserDto testRemoteUser = new UserDto();
+
+    @Mock
+    private UserModel newUser;
+
+    private String lastCreatedUserName = "user@changefirst.com";
+    private String lastChangedEmail = null;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
 
-
         factory = new RestUserFederationProviderFactory();
         MultivaluedHashMap<String, String> config = new MultivaluedHashMap<String, String>();
         config.putSingle(RestUserFederationProviderFactory.PROPERTY_URL, "http://localhost.com");
-        when(userFederationProviderModel.getConfig())
-                .thenReturn(config);
+        when(userFederationProviderModel.getConfig()).thenReturn(config);
+        when(userFederationProviderModel.getId()).thenReturn("testRms");
 
-        when(user.getUsername()).thenReturn("user1@changefirst.com");
+        when(user.getUsername()).thenReturn("user@changefirst.com");
+        
+
+        when(userProvider.addUser(any(), any()))
+
+                .thenAnswer(i -> {
+                    lastCreatedUserName = i.getArguments()[1].toString();
+                    when(newUser.getUsername()).thenReturn(lastCreatedUserName);
+  
+                   doAnswer((emailString) -> {
+                        lastChangedEmail =  emailString.getArguments()[0].toString();
+                        return null;
+                    }).when(newUser).setEmail(anyString());
+                    return newUser;
+                });
+
+        when(keycloakSession.userLocalStorage()).thenReturn(userProvider);
+
         when(input.getValue()).thenReturn("password");
         when(input.getType()).thenReturn(CredentialModel.PASSWORD);
+        when(repository.findUserByUsername("user@changefirst.com")).thenReturn(testRemoteUser);
 
     }
 
     @Test
     public void testGetInstance() throws Exception {
+
         Object provider = factory.create(keycloakSession, userFederationProviderModel);
+
         assertNotNull(provider);
         assertTrue(provider instanceof RestUserFederationProvider);
     }
 
     @Test
+    public void loginUserNoEmail() throws Exception {
+     
+        testRemoteUser.setUsername("testUsername");
+
+        RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
+                userFederationProviderModel, repository);
+
+        UserModel user = restProvider.getUserByUsername("user@changefirst.com", realm);
+        assertNotNull(user);
+        assertEquals("testUsername", user.getUsername());
+        assertEquals("testUsername", lastCreatedUserName);
+        assertNull(user.getEmail());
+    }
+
+    @Test
+    public void loginUserWithEmail() throws Exception {
+      
+        testRemoteUser.setUsername("testUsername");
+        testRemoteUser.setEmail("bob@123.com");
+
+        RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
+                userFederationProviderModel, repository);
+
+        UserModel user = restProvider.getUserByUsername("user@changefirst.com", realm);
+        assertNotNull(user);
+        assertEquals("testUsername", user.getUsername());
+        assertEquals("testUsername", lastCreatedUserName);
+
+        assertNull(user.getEmail());
+    }
+
+    @Test
     public void testclose() throws Exception {
-        RestUserFederationProvider  provider = factory.create(keycloakSession, userFederationProviderModel);
+        RestUserFederationProvider provider = factory.create(keycloakSession, userFederationProviderModel);
         provider.close();
         verifyZeroInteractions(config);
     }
-
-
 }
