@@ -77,7 +77,10 @@ public class RestUserFederationProviderTest {
     @Mock
     private UserModel newUser;
 
-    private String lastCreatedUserName = "user@changefirst.com";
+    @Mock
+    private UserModel existingUser;
+
+    private String lastCreatedUserName = null;
     private String lastChangedEmail = null;
 
     @Before
@@ -91,16 +94,15 @@ public class RestUserFederationProviderTest {
         when(userFederationProviderModel.getId()).thenReturn("testRms");
 
         when(user.getUsername()).thenReturn("user@changefirst.com");
-        
 
         when(userProvider.addUser(any(), any()))
 
                 .thenAnswer(i -> {
                     lastCreatedUserName = i.getArguments()[1].toString();
                     when(newUser.getUsername()).thenReturn(lastCreatedUserName);
-  
-                   doAnswer((emailString) -> {
-                        lastChangedEmail =  emailString.getArguments()[0].toString();
+
+                    doAnswer((emailString) -> {
+                        lastChangedEmail = emailString.getArguments()[0].toString();
                         return null;
                     }).when(newUser).setEmail(anyString());
                     return newUser;
@@ -110,7 +112,7 @@ public class RestUserFederationProviderTest {
 
         when(input.getValue()).thenReturn("password");
         when(input.getType()).thenReturn(CredentialModel.PASSWORD);
-        when(repository.findUserByUsername("user@changefirst.com")).thenReturn(testRemoteUser);
+        when(repository.findUserByUsername(anyString())).thenReturn(testRemoteUser);
 
     }
 
@@ -124,39 +126,66 @@ public class RestUserFederationProviderTest {
     }
 
     @Test
-    public void loginUserNoEmail() throws Exception {
-     
+    public void loginNewUserNoEmail() throws Exception {
+
         testRemoteUser.setUsername("testUsername");
 
         RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
                 userFederationProviderModel, repository);
 
-        UserModel user = restProvider.getUserByUsername("user@changefirst.com", realm);
-        assertNotNull(user);
-        assertEquals("testUsername", user.getUsername());
+        UserModel loadedUser = restProvider.getUserByUsername("user@changefirst.com", realm);
+        assertNotNull(loadedUser);
+        assertEquals("testUsername", loadedUser.getUsername());
         assertEquals("testUsername", lastCreatedUserName);
-        assertNull(user.getEmail());
+        assertNull(loadedUser.getEmail());
+        assertNull(lastChangedEmail);
     }
 
     @Test
-    public void loginUserWithEmail() throws Exception {
-      
+    public void loginNewUserWithEmail() throws Exception {
+
+        lastChangedEmail = null;
+        lastCreatedUserName = null;
+
         testRemoteUser.setUsername("testUsername");
         testRemoteUser.setEmail("bob@123.com");
 
         RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
                 userFederationProviderModel, repository);
 
-        UserModel user = restProvider.getUserByUsername("user@changefirst.com", realm);
-        assertNotNull(user);
-        assertEquals("testUsername", user.getUsername());
+        UserModel loadedUser = restProvider.getUserByUsername("bob@123.com", realm);
+        assertNotNull(loadedUser);
+        assertEquals("testUsername", loadedUser.getUsername());
         assertEquals("testUsername", lastCreatedUserName);
 
         assertEquals("bob@123.com", lastChangedEmail);
     }
 
     @Test
-    public void loginUserWithInvalidEmail() throws Exception {
+    public void loginNewUserWithEmailSameAsUsername() throws Exception {
+
+        lastChangedEmail = null;
+        lastCreatedUserName = null;
+
+        testRemoteUser.setUsername("bob@123.com");
+        testRemoteUser.setEmail("bob@123.com");
+
+        RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
+                userFederationProviderModel, repository);
+
+        UserModel loadedUser = restProvider.getUserByUsername("bob@123.com", realm);
+        assertNotNull(loadedUser);
+
+        assertEquals("bob@123.com", lastCreatedUserName);
+
+        assertEquals("bob@123.com", lastChangedEmail);
+    }
+
+    @Test
+    public void loginNewUserWithInvalidEmail() throws Exception {
+
+        lastChangedEmail = null;
+        lastCreatedUserName = null;
 
         testRemoteUser.setUsername("testUsername");
         testRemoteUser.setEmail("MonkeyBallz");
@@ -165,10 +194,58 @@ public class RestUserFederationProviderTest {
         RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
                 userFederationProviderModel, repository);
 
-        UserModel user = restProvider.getUserByUsername("user@changefirst.com", realm);
-        assertNotNull(user);
-        assertEquals("testUsername", user.getUsername());
+        UserModel loadedUser = restProvider.getUserByUsername("MonkeyBallz", realm);
+        assertNotNull(loadedUser);
+        assertEquals("testUsername", loadedUser.getUsername());
         assertEquals("testUsername", lastCreatedUserName);
+
+        assertNull(lastChangedEmail);
+    }
+
+    @Test
+    public void loginExitingUserWithEmail() throws Exception {
+
+        lastChangedEmail = null;
+        lastCreatedUserName = null;
+
+        testRemoteUser.setUsername("testUsername");
+        testRemoteUser.setEmail("bob@123.com");
+
+        when(existingUser.getUsername()).thenReturn("testUsername");
+
+        when(userProvider.getUserByUsername(eq("testUsername"), eq(realm))).thenReturn(existingUser);
+
+        RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
+                userFederationProviderModel, repository);
+
+        UserModel loadedUser = restProvider.getUserByUsername("user@changefirst.com", realm);
+        assertNotNull(loadedUser);
+        assertEquals("testUsername", loadedUser.getUsername());
+        assertNull(lastCreatedUserName);
+
+        assertNull(lastChangedEmail);
+    }
+
+    @Test
+    public void loginExitingUserWithEmailTheSameAsUsename() throws Exception {
+
+        lastChangedEmail = null;
+        lastCreatedUserName = null;
+
+        // remote call should not be reuired so set as monkeyballz
+        testRemoteUser.setUsername("monkyBallz");
+        testRemoteUser.setEmail("monkyBallz@123.com");
+
+        when(existingUser.getUsername()).thenReturn("bob@123.com");
+
+        when(userProvider.getUserByUsername(eq("bob@123.com"), eq(realm))).thenReturn(existingUser);
+
+        RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
+                userFederationProviderModel, repository);
+
+        UserModel loadedUser = restProvider.getUserByUsername("bob@123.com", realm);
+        assertNotNull(loadedUser);
+        assertNull(lastCreatedUserName);
 
         assertNull(lastChangedEmail);
     }
