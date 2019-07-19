@@ -1,0 +1,28 @@
+{
+  "firstName": "First Name",
+  "lastName": "Last Name",
+  "username": "Test Username",
+  "enabled": true,
+  "roles": [
+    "admin",
+    "user"
+  ],
+  "attributes": 
+  {
+	"locale": [
+		"en-GB"
+	],
+	"country": [
+		"Brazil"
+	],
+	"clientId": [
+		"134"
+	],
+	"phoneNumber": [
+		"01342299299"
+	],
+	"mobileNumber": [
+		"01342299299"
+	]
+  }  
+}
