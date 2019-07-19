@@ -2,6 +2,7 @@
   "email": "user1@changefirst.com",
   "firstName": "First Name",
   "lastName": "Last Name",
+  "username": "Test Username",
   "enabled": true,
   "roles": [
     "admin",

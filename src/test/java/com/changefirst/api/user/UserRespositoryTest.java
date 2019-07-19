@@ -84,6 +84,7 @@ public class UserRespositoryTest {
         Assert.assertEquals(USER_NAME, user.getEmail());
         Assert.assertEquals("First Name", user.getFirstName());
         Assert.assertEquals("Last Name", user.getLastName());
+        Assert.assertEquals("Test Username", user.getUsername());
         Assert.assertTrue("is enabled", user.isEnabled());
         Assert.assertTrue("has admin role", user.getRoles().contains("admin"));
         Assert.assertTrue("has user role", user.getRoles().contains("user"));

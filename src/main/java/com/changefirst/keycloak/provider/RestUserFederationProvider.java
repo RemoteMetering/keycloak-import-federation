@@ -80,12 +80,17 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
             UserDto remote = this.repository.findUserByUsername(username);
             if ( remote != null) {
 
-                if (!username.equals(remote.getEmail())) {
-                    throw new IllegalStateException(String.format("Local and remote users are not the same : [%s != %s]", username, remote.getEmail()));
+                // if (!username.equals(remote.getEmail())) {
+                //     throw new IllegalStateException(String.format("Local and remote users are not the same : [%s != %s]", username, remote.getEmail()));
+                // }
+
+                if (remote.getUsername() == null) {
+                    throw new IllegalStateException(String.format(
+                            "Remote user has no username for login : [%s]", username));
                 }
 
                 //create user locally and set up relationship to this SPI
-                local = session.userLocalStorage().addUser(realm, username);
+                local = session.userLocalStorage().addUser(realm, remote.getUsername());
                 local.setFederationLink(model.getId());
 
                 //merge data from remote to local
