@@ -152,7 +152,25 @@ public class RestUserFederationProviderTest {
         assertEquals("testUsername", user.getUsername());
         assertEquals("testUsername", lastCreatedUserName);
 
-        assertNull(user.getEmail());
+        assertEquals("bob@123.com", lastChangedEmail);
+    }
+
+    @Test
+    public void loginUserWithInvalidEmail() throws Exception {
+
+        testRemoteUser.setUsername("testUsername");
+        testRemoteUser.setEmail("MonkeyBallz");
+        lastChangedEmail = null;
+
+        RestUserFederationProvider restProvider = new RestUserFederationProvider(keycloakSession,
+                userFederationProviderModel, repository);
+
+        UserModel user = restProvider.getUserByUsername("user@changefirst.com", realm);
+        assertNotNull(user);
+        assertEquals("testUsername", user.getUsername());
+        assertEquals("testUsername", lastCreatedUserName);
+
+        assertNull(lastChangedEmail);
     }
 
     @Test
