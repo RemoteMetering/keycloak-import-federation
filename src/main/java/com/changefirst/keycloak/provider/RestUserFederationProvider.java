@@ -76,7 +76,7 @@ public class RestUserFederationProvider
 
     protected UserModel createAdapter(RealmModel realm, String username) {
         UserModel local = session.userLocalStorage().getUserByUsername(username, realm);
-        // if not found try with the extrnal user nam
+        // if not found try with the external user nam
 
         if (local == null) {
             // fetch user remotely
@@ -84,11 +84,7 @@ public class RestUserFederationProvider
             UserDto remote = this.repository.findUserByUsername(username);
             if (remote != null) {
 
-                // if (!username.equals(remote.getEmail())) {
-                // throw new IllegalStateException(String.format("Local and remote users are not
-                // the same : [%s != %s]", username, remote.getEmail()));
-                // }
-
+             
                 if (remote.getUsername() == null) {
                     throw new IllegalStateException(
                             String.format("Remote user has no username for login : [%s]", username));
