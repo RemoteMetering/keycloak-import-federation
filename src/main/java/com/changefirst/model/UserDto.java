@@ -8,12 +8,21 @@ import java.util.Set;
  * Created by istvano on 16/02/2017.
  */
 public class UserDto {
+    private String username;
     private String firstName;
     private String lastName;
     private String email;
     private boolean enabled = false;
     private Set<String> roles;
     private Map<String, List<String>> attributes;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public String getFirstName() {
         return firstName;
@@ -71,6 +80,7 @@ public class UserDto {
         UserDto that = (UserDto) o;
 
         if (enabled != that.enabled) return false;
+        if (username != null ? !username.equals(that.username) : that.username != null) return false;
         if (firstName != null ? !firstName.equals(that.firstName) : that.firstName != null) return false;
         if (lastName != null ? !lastName.equals(that.lastName) : that.lastName != null) return false;
         if (email != null ? !email.equals(that.email) : that.email != null) return false;
@@ -80,7 +90,8 @@ public class UserDto {
 
     @Override
     public int hashCode() {
-        int result = firstName != null ? firstName.hashCode() : 0;
+        int result = username != null ? username.hashCode() : 0;
+        result = 31 * result + (firstName != null ? firstName.hashCode() : 0);
         result = 31 * result + (lastName != null ? lastName.hashCode() : 0);
         result = 31 * result + (email != null ? email.hashCode() : 0);
         result = 31 * result + (enabled ? 1 : 0);
@@ -92,7 +103,8 @@ public class UserDto {
     @Override
     public String toString() {
         return "UserDto{" +
-                "firstName='" + firstName + '\'' +
+                "username='" + username + '\'' +
+                ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
                 ", enabled=" + enabled +

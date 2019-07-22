@@ -84,6 +84,40 @@ public class UserRespositoryTest {
         Assert.assertEquals(USER_NAME, user.getEmail());
         Assert.assertEquals("First Name", user.getFirstName());
         Assert.assertEquals("Last Name", user.getLastName());
+        Assert.assertEquals("Test Username", user.getUsername());
+        Assert.assertTrue("is enabled", user.isEnabled());
+        Assert.assertTrue("has admin role", user.getRoles().contains("admin"));
+        Assert.assertTrue("has user role", user.getRoles().contains("user"));
+
+        Map<String, List<String>> attribs = user.getAttributes();
+
+        Assert.assertTrue("Contains locale", attribs.containsKey("locale"));
+        Assert.assertTrue("Contains country", attribs.containsKey("country"));
+        Assert.assertTrue("Contains client id", attribs.containsKey("clientId"));
+        Assert.assertTrue("Contains phone Nr", attribs.containsKey("phoneNumber"));
+        Assert.assertTrue("Contains mobile Number ", attribs.containsKey("mobileNumber"));
+
+        String clientId = attribs.get("clientId").get(0);
+        Assert.assertEquals(CLIENT, clientId);
+
+    }
+
+    @Test
+    public void testFindUserByUsernameNoEmail() {
+        String url = getClientUrl(CONTEXT, CLIENT, USER_NAME);
+
+        whenHttp(server).match(get(url)).then(status(HttpStatus.OK_200), contentType("application/json"),
+                resourceContent("com/changefirst/api/userNoEmail.json"));
+
+        UserRepository userRepository = new UserRepository(getRestUrl(), CLIENT);
+        UserDto user = userRepository.findUserByUsername(USER_NAME);
+
+        verifyHttp(server).once(method(Method.GET), uri(url));
+
+        Assert.assertEquals(null, user.getEmail());
+        Assert.assertEquals("First Name", user.getFirstName());
+        Assert.assertEquals("Last Name", user.getLastName());
+        Assert.assertEquals("Test Username", user.getUsername());
         Assert.assertTrue("is enabled", user.isEnabled());
         Assert.assertTrue("has admin role", user.getRoles().contains("admin"));
         Assert.assertTrue("has user role", user.getRoles().contains("user"));

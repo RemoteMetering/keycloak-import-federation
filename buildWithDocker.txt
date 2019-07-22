@@ -3,5 +3,10 @@ docker pull gradle
 #windows
  docker run --rm -v /c/projects/keycloak-import-federation:/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build
 
+or with cache
+docker volume create --name gradle-cache
+docker run --rm -v gradle-cache:/home/gradle/.gradle -v /c/projects/keycloak-import-federation:/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build
+
+
  #linux - run int the project dire
 docker run --rm -v "$PWD":/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build

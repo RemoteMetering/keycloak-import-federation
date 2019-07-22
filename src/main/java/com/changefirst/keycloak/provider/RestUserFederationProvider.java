@@ -34,13 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 /**
  * Rest User federation to import users from remote user store
  *
  * @author Istvan Orban
  */
-public class RestUserFederationProvider implements UserLookupProvider, ImportedUserValidation, CredentialInputValidator, UserStorageProvider {
+public class RestUserFederationProvider
+        implements UserLookupProvider, ImportedUserValidation, CredentialInputValidator, UserStorageProvider {
 
     private static final Logger LOG = Logger.getLogger(RestUserFederationProvider.class);
 
@@ -56,10 +56,12 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
     protected String roleClientId;
 
     public RestUserFederationProvider(KeycloakSession session, ComponentModel model, UserRepository repository) {
-        this(session, model,repository, new ArrayList<String>(), null, false, false, false, false, "");
+        this(session, model, repository, new ArrayList<String>(), null, false, false, false, false, "");
     }
 
-    public RestUserFederationProvider(KeycloakSession session, ComponentModel model, UserRepository repository, List<String> attributes, String rolePrefix, Boolean autoEnable, Boolean autoConvertLocale, Boolean upperCaseRoleName, Boolean lowerCaseRoleName, String roleClientId) {
+    public RestUserFederationProvider(KeycloakSession session, ComponentModel model, UserRepository repository,
+            List<String> attributes, String rolePrefix, Boolean autoEnable, Boolean autoConvertLocale,
+            Boolean upperCaseRoleName, Boolean lowerCaseRoleName, String roleClientId) {
         this.session = session;
         this.model = model;
         this.repository = repository;
@@ -74,73 +76,83 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
 
     protected UserModel createAdapter(RealmModel realm, String username) {
         UserModel local = session.userLocalStorage().getUserByUsername(username, realm);
+        // if not found try with the external user nam
+
         if (local == null) {
-            //fetch user remotely
+            // fetch user remotely
             LOG.debugf("User %s does not exists locally, fetching it from remote.", username);
             UserDto remote = this.repository.findUserByUsername(username);
-            if ( remote != null) {
+            if (remote != null) {
 
-                if (!username.equals(remote.getEmail())) {
-                    throw new IllegalStateException(String.format("Local and remote users are not the same : [%s != %s]", username, remote.getEmail()));
+             
+                if (remote.getUsername() == null) {
+                    throw new IllegalStateException(
+                            String.format("Remote user has no username for login : [%s]", username));
                 }
 
-                //create user locally and set up relationship to this SPI
-                local = session.userLocalStorage().addUser(realm, username);
-                local.setFederationLink(model.getId());
+                // check if we can find the user locally with the remote use name
+                local = session.userLocalStorage().getUserByUsername(remote.getUsername(), realm);
 
-                //merge data from remote to local
-                local.setFirstName(remote.getFirstName());
-                local.setLastName(remote.getLastName());
-				if(!username.contains("@")){
-                	local.setEmail(remote.getEmail());
-                	local.setEmailVerified(remote.isEnabled());
-				}
+                //if still no local add the user and roles
+                if (local == null) {
+                    // create user locally and set up relationship to this SPI
+                    local = session.userLocalStorage().addUser(realm, remote.getUsername());
+                    local.setFederationLink(model.getId());
 
-                //auto enable account
-                if ( this.autoEnable != null && this.autoEnable) {
-                    local.setEnabled(true);
-                }
+                    // merge data from remote to local
+                    local.setFirstName(remote.getFirstName());
+                    local.setLastName(remote.getLastName());
 
-                //copy user attribs over
-                if (remote.getAttributes() != null) {
-                    List<String> attributeValues = null;
-                    Map<String, List<String>> attributes = remote.getAttributes();
-                    for (String attributeName : attributes.keySet()) {
-                        if ( this.attributes.isEmpty() || this.attributes.contains(attributeName)) {
-                            attributeValues = attributes.get(attributeName);
-                            if ( attributeValues != null && !attributeValues.isEmpty() ) {
-                                if ( attributeName.equalsIgnoreCase(UserModel.LOCALE) ) {
-                                    this.setUserLocale(realm, local, attributeValues.get(0));
-                                } else if ( attributeValues.size() == 1 ) {
-                                    local.setSingleAttribute(attributeName, attributeValues.get(0));
-                                } else {
-                                    local.setAttribute(attributeName, attributeValues);
+                    if (remote.getEmail() != null && remote.getEmail().contains("@")) {
+                        local.setEmail(remote.getEmail());
+                        local.setEmailVerified(remote.isEnabled());
+                    }
+
+                    // auto enable account
+                    if (this.autoEnable != null && this.autoEnable) {
+                        local.setEnabled(true);
+                    }
+
+                    // copy user attribs over
+                    if (remote.getAttributes() != null) {
+                        List<String> attributeValues = null;
+                        Map<String, List<String>> attributes = remote.getAttributes();
+                        for (String attributeName : attributes.keySet()) {
+                            if (this.attributes.isEmpty() || this.attributes.contains(attributeName)) {
+                                attributeValues = attributes.get(attributeName);
+                                if (attributeValues != null && !attributeValues.isEmpty()) {
+                                    if (attributeName.equalsIgnoreCase(UserModel.LOCALE)) {
+                                        this.setUserLocale(realm, local, attributeValues.get(0));
+                                    } else if (attributeValues.size() == 1) {
+                                        local.setSingleAttribute(attributeName, attributeValues.get(0));
+                                    } else {
+                                        local.setAttribute(attributeName, attributeValues);
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
+                    ClientModel clientModel = realm.getClientByClientId(this.roleClientId);
 
-                ClientModel clientModel = realm.getClientByClientId(this.roleClientId);
-
-                //pass roles along
-                if (remote.getRoles() != null) {
-                    for (String role : remote.getRoles()) {
-                        RoleModel roleModel = clientModel.getRole(convertRemoteRoleName(role));
-                        if (roleModel != null) {
-                            local.grantRole(roleModel);
-                            LOG.infof("Remote role %s granted to %s", role, username);
+                    // pass roles along
+                    if (remote.getRoles() != null) {
+                        for (String role : remote.getRoles()) {
+                            RoleModel roleModel = clientModel.getRole(convertRemoteRoleName(role));
+                            if (roleModel != null) {
+                                local.grantRole(roleModel);
+                                LOG.infof("Remote role %s granted to %s", role, username);
+                            }
                         }
                     }
                 }
             }
         }
-        if ( local != null ) {
+        if (local != null) {
             return new UserModelDelegate(local) {
                 @Override
                 public void setUsername(String username) {
-                    //showing we can proxy every request to our repo if needed
+                    // showing we can proxy every request to our repo if needed
                     super.setUsername(username);
                 }
             };
@@ -151,31 +163,31 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
 
     private String convertRemoteRoleName(String remoteRoleName) {
         String roleName = remoteRoleName;
-        if ( this.rolePrefix !=null && this.rolePrefix.length() > 0) {
-            roleName =  remoteRoleName.replaceFirst("^"+rolePrefix, "");
+        if (this.rolePrefix != null && this.rolePrefix.length() > 0) {
+            roleName = remoteRoleName.replaceFirst("^" + rolePrefix, "");
         }
-        if ( this.upperCaseRoleName) {
+        if (this.upperCaseRoleName) {
             roleName = roleName.toUpperCase();
-        } else if ( this.lowerCaseRoleName) {
+        } else if (this.lowerCaseRoleName) {
             roleName = roleName.toLowerCase();
         }
         return roleName;
     }
 
-    private UserModel setUserLocale(RealmModel realm,  UserModel local, String locale ) {
+    private UserModel setUserLocale(RealmModel realm, UserModel local, String locale) {
 
         String matchingLocale = null;
-        if ( this.autoConvertLocale && realm.isInternationalizationEnabled()) {
+        if (this.autoConvertLocale && realm.isInternationalizationEnabled()) {
             Set<String> supportedLocales = realm.getSupportedLocales();
             for (String supLocale : supportedLocales) {
-                if ( locale.equalsIgnoreCase(supLocale) ) {
+                if (locale.equalsIgnoreCase(supLocale)) {
                     matchingLocale = supLocale;
                     break;
                 }
             }
-            if ( matchingLocale == null ) {
+            if (matchingLocale == null) {
                 for (String supLocale : supportedLocales) {
-                    if ( locale.toLowerCase().contains(supLocale.toLowerCase()) ) {
+                    if (locale.toLowerCase().contains(supLocale.toLowerCase())) {
                         matchingLocale = supLocale;
                         break;
                     }
@@ -183,7 +195,7 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
             }
         }
 
-        matchingLocale = matchingLocale==null?locale:matchingLocale;
+        matchingLocale = matchingLocale == null ? locale : matchingLocale;
         local.setSingleAttribute(UserModel.LOCALE, matchingLocale);
         return local;
     }
@@ -209,7 +221,7 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
 
     @Override
     public void close() {
-        //n/a
+        // n/a
     }
 
     @Override
@@ -232,22 +244,24 @@ public class RestUserFederationProvider implements UserLookupProvider, ImportedU
 
     @Override
     public void preRemove(RealmModel realm) {
-        //n/a
+        // n/a
     }
 
     @Override
     public void preRemove(RealmModel realm, GroupModel group) {
-        //n/a
+        // n/a
     }
 
     @Override
     public void preRemove(RealmModel realm, RoleModel role) {
-        //n/a
+        // n/a
     }
 
-    //see https://keycloak.gitbooks.io/server-developer-guide/content/topics/user-storage/import.html
-    //this is called every time the user is laoded from the Local user-store
-    //this can be used to check if the user still exists in the remote, returning null will remote this user locally
+    // see
+    // https://keycloak.gitbooks.io/server-developer-guide/content/topics/user-storage/import.html
+    // this is called every time the user is laoded from the Local user-store
+    // this can be used to check if the user still exists in the remote, returning
+    // null will remote this user locally
     @Override
     public UserModel validate(RealmModel realm, UserModel user) {
         return user;
