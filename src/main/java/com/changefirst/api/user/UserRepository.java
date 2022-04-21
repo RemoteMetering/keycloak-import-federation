@@ -23,7 +23,7 @@ public class UserRepository {
 
     private static UserService buildClient(String uri) {
 
-        ResteasyClient client = new ClientBuilder.newBuilder().disableTrustManager().build();
+        ResteasyClient client = new ResteasyClientBuilder().disableTrustManager().build();
         ResteasyWebTarget target =  client.target(uri);
 
         return target
