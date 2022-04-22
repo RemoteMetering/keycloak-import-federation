@@ -1,12 +1,15 @@
-docker pull gradle
+docker pull gradle:3.4
 
 #windows
- docker run --rm -v /c/projects/keycloak-import-federation:/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build
+ docker run --rm -v /c/projects/keycloak-import-federation:/home/gradle/project -w /home/gradle/project gradle:3.4 ./gradlew clean build
 
 or with cache
 docker volume create --name gradle-cache
-docker run --rm -v gradle-cache:/home/gradle/.gradle -v /c/projects/keycloak-import-federation:/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build
+docker run --rm -v gradle-cache:/home/gradle/.gradle -v /c/projects/keycloak-import-federation:/home/gradle/project -w /home/gradle/project gradle:3.4 ./gradlew clean build
 
 
  #linux - run int the project dire
-docker run --rm -v "$PWD":/home/gradle/project -w /home/gradle/project gradle ./gradlew clean build
+docker run --rm -v "$PWD":/home/gradle/project -w /home/gradle/project gradle:3.4 ./gradlew -S clean build
+
+#linux - without tests
+docker run --rm -v "$PWD":/home/gradle/project -w /home/gradle/project gradle:3.4 ./gradlew -S clean build -x test
