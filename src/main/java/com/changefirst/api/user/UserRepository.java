@@ -4,10 +4,12 @@ import com.changefirst.model.UserCredentialsDto;
 import com.changefirst.model.UserDto;
 import org.apache.http.HttpStatus;
 import org.jboss.logging.Logger;
-import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 
+import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
+import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
@@ -22,15 +24,13 @@ public class UserRepository {
     private static final Logger LOG = Logger.getLogger(UserRepository.class);
 
     private static UserService buildClient(String uri) {
-
-        ResteasyClient client = new ResteasyClientBuilder().disableTrustManager().build();
-        ResteasyWebTarget target =  client.target(uri);
+        ResteasyClient client = new ResteasyClientBuilderImpl().disableTrustManager().build();
+        ResteasyWebTarget target = client.target(uri);
 
         return target
                 .proxyBuilder(UserService.class)
                 .classloader(UserService.class.getClassLoader())
                 .build();
-
     }
 
     private String url;
@@ -63,10 +63,10 @@ public class UserRepository {
         UserDto remoteUser = null;
 
         try {
-            remoteUser =remoteService.getUserDetails(this.client, userName);
+            remoteUser = remoteService.getUserDetails(this.client, userName);
         } catch (WebApplicationException e) {
             Response response = e.getResponse();
-            LOG.warn("Received a non OK answer from upstream migration service", e);
+            LOG.warnf("Received a non OK answer from upstream migration service for user: " + userName + " - " + response.getStatus());
         }
 
         return remoteUser;
