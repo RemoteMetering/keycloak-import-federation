@@ -83,7 +83,6 @@ public class RestUserFederationProvider
             LOG.debugf("User %s does not exists locally, fetching it from remote.", username);
             UserDto remote = this.repository.findUserByUsername(username);
             if (remote != null) {
-
              
                 if (remote.getUsername() == null) {
                     throw new IllegalStateException(
@@ -238,7 +237,7 @@ public class RestUserFederationProvider
 
     @Override
     public UserModel getUserByUsername(String username, RealmModel realm) {
-        LOG.infof("Creating a new user adapter for: %s", username);
+        LOG.infof("Creating/looking up a user adapter for: %s", username);
         return this.createAdapter(realm, username);
     }
 
