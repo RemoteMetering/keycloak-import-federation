@@ -66,7 +66,7 @@ public class UserRepository {
             remoteUser = remoteService.getUserDetails(this.client, userName);
         } catch (WebApplicationException e) {
             Response response = e.getResponse();
-            LOG.warn("Received a non OK answer from upstream migration service", response.getStatus());
+            LOG.warnf("Received a non OK answer from upstream migration service", response.getStatus());
         }
 
         return remoteUser;
