@@ -31,7 +31,6 @@ public class UserRepository {
                 .proxyBuilder(UserService.class)
                 .classloader(UserService.class.getClassLoader())
                 .build();
-
     }
 
     private String url;
@@ -64,10 +63,10 @@ public class UserRepository {
         UserDto remoteUser = null;
 
         try {
-            remoteUser =remoteService.getUserDetails(this.client, userName);
+            remoteUser = remoteService.getUserDetails(this.client, userName);
         } catch (WebApplicationException e) {
             Response response = e.getResponse();
-            LOG.warn("Received a non OK answer from upstream migration service", e);
+            LOG.warn("Received a non OK answer from upstream migration service", response.getStatus());
         }
 
         return remoteUser;
